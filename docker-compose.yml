@@ -1,0 +1,37 @@
+# ─────────────────────────────────────────────────────────────────────────
+# Local development stack — backend + frontend
+# Usage:  docker compose up --build
+#         → frontend: http://localhost:8080
+#         → backend:  http://localhost:8000/docs
+# ─────────────────────────────────────────────────────────────────────────
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: churn-backend
+    environment:
+      MOCK_MODEL:    "true"     # set to false + provide DATABRICKS_* to use the real model
+      LOG_ENV:       dev
+      LOG_LEVEL:     INFO
+      CORS_ORIGINS:  "*"
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health').status==200 else 1)\""]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: churn-frontend
+    environment:
+      BACKEND_URL: http://backend:8000
+    ports:
+      - "8080:8080"
+    depends_on:
+      backend:
+        condition: service_healthy

@@ -1,0 +1,32 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: churn-frontend
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+
+  source:
+    repoURL:        https://github.com/<your-user>/mlops-e2e.git
+    targetRevision: main
+    path:           k8s/frontend
+
+  destination:
+    server:    https://kubernetes.default.svc
+    namespace: churn
+
+  syncPolicy:
+    automated:
+      prune:    true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+    retry:
+      limit: 5
+      backoff:
+        duration:    10s
+        factor:      2
+        maxDuration: 5m

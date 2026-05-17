@@ -1,0 +1,101 @@
+{
+  "title": "Churn API — overview",
+  "uid": "churn-api",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "30s",
+  "time": { "from": "now-1h", "to": "now" },
+  "tags": ["churn", "mlops"],
+  "templating": { "list": [] },
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Requests / sec (5 min)",
+      "gridPos": { "x": 0, "y": 0, "w": 6, "h": 4 },
+      "targets": [{
+        "expr": "sum(rate(http_requests_total{namespace=\"churn\"}[5m]))",
+        "refId": "A"
+      }]
+    },
+    {
+      "type": "stat",
+      "title": "Error rate (5 min)",
+      "gridPos": { "x": 6, "y": 0, "w": 6, "h": 4 },
+      "targets": [{
+        "expr": "sum(rate(http_requests_total{namespace=\"churn\",status=~\"5..\"}[5m])) / sum(rate(http_requests_total{namespace=\"churn\"}[5m]))",
+        "refId": "A"
+      }],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green",  "value": null },
+              { "color": "yellow", "value": 0.01 },
+              { "color": "red",    "value": 0.05 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Predictions / min",
+      "gridPos": { "x": 12, "y": 0, "w": 6, "h": 4 },
+      "targets": [{
+        "expr": "sum(rate(model_predictions_total[5m])) * 60",
+        "refId": "A"
+      }]
+    },
+    {
+      "type": "stat",
+      "title": "Pods Ready",
+      "gridPos": { "x": 18, "y": 0, "w": 6, "h": 4 },
+      "targets": [{
+        "expr": "sum(kube_deployment_status_replicas_available{namespace=\"churn\",deployment=\"backend\"})",
+        "refId": "A"
+      }]
+    },
+    {
+      "type": "timeseries",
+      "title": "Request latency — p50 / p95 / p99",
+      "gridPos": { "x": 0, "y": 4, "w": 12, "h": 8 },
+      "targets": [
+        { "expr": "histogram_quantile(0.50, sum(rate(http_request_duration_seconds_bucket{namespace=\"churn\"}[5m])) by (le))", "legendFormat": "p50", "refId": "A" },
+        { "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{namespace=\"churn\"}[5m])) by (le))", "legendFormat": "p95", "refId": "B" },
+        { "expr": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket{namespace=\"churn\"}[5m])) by (le))", "legendFormat": "p99", "refId": "C" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s" } }
+    },
+    {
+      "type": "timeseries",
+      "title": "Inference latency (model.predict)",
+      "gridPos": { "x": 12, "y": 4, "w": 12, "h": 8 },
+      "targets": [
+        { "expr": "histogram_quantile(0.50, sum(rate(model_prediction_seconds_bucket[5m])) by (le))", "legendFormat": "p50", "refId": "A" },
+        { "expr": "histogram_quantile(0.95, sum(rate(model_prediction_seconds_bucket[5m])) by (le))", "legendFormat": "p95", "refId": "B" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s" } }
+    },
+    {
+      "type": "timeseries",
+      "title": "Prediction class distribution",
+      "gridPos": { "x": 0, "y": 12, "w": 12, "h": 8 },
+      "targets": [{
+        "expr": "sum(rate(model_predictions_total[5m])) by (predicted_class)",
+        "legendFormat": "class={{predicted_class}}",
+        "refId": "A"
+      }]
+    },
+    {
+      "type": "timeseries",
+      "title": "CPU / Memory (backend pods)",
+      "gridPos": { "x": 12, "y": 12, "w": 12, "h": 8 },
+      "targets": [
+        { "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"churn\",pod=~\"backend-.*\"}[5m]))", "legendFormat": "cpu", "refId": "A" },
+        { "expr": "sum(container_memory_working_set_bytes{namespace=\"churn\",pod=~\"backend-.*\"})", "legendFormat": "memory", "refId": "B" }
+      ]
+    }
+  ]
+}

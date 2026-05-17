@@ -1,0 +1,25 @@
+# Copy this file to `terraform.tfvars` and fill in your values.
+# DO NOT commit terraform.tfvars — add it to .gitignore.
+
+aws_region   = "us-east-1"
+environment  = "dev"
+project      = "churn-mlops"
+
+# VPC — defaults are usually fine
+vpc_cidr        = "10.0.0.0/16"
+azs             = ["us-east-1a", "us-east-1b"]
+public_subnets  = ["10.0.1.0/24",  "10.0.2.0/24"]
+private_subnets = ["10.0.11.0/24", "10.0.12.0/24"]
+
+# EKS
+cluster_name        = "churn-mlops-eks"
+cluster_version     = "1.30"
+node_instance_types = ["t3.medium"]
+node_desired_size   = 2
+node_min_size       = 1
+node_max_size       = 4
+
+# DNS (leave domain_name empty to skip Route 53)
+domain_name         = ""               # e.g. "example.com"
+app_subdomain       = "app"            # → app.example.com
+acm_certificate_arn = ""               # arn:aws:acm:us-east-1:...:certificate/...

@@ -1,0 +1,100 @@
+# ─────────────────────────────────────────────────────────────────────────
+# Values for the `kube-prometheus-stack` Helm chart.
+# Installs Prometheus, Grafana, Alertmanager, node-exporter, and kube-
+# state-metrics in one go.
+#
+# Install:
+#   helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+#   helm repo update
+#   helm install kps prometheus-community/kube-prometheus-stack \
+#        -n monitoring --create-namespace \
+#        -f k8s/monitoring/prometheus-values.yaml
+# ─────────────────────────────────────────────────────────────────────────
+
+prometheus:
+  prometheusSpec:
+    # Discover ALL ServiceMonitors / PodMonitors in the cluster, not just
+    # those that match the chart's release label. (Default is too strict.)
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+    ruleSelectorNilUsesHelmValues:        false
+
+    # Retention — 15 days is plenty for the tutorial
+    retention: 15d
+
+    # Resource requests/limits tuned for a t3.medium node group
+    resources:
+      requests:
+        cpu:    "250m"
+        memory: "512Mi"
+      limits:
+        cpu:    "1"
+        memory: "2Gi"
+
+    # Storage — uses the EBS CSI driver we installed in Phase 9
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 20Gi
+          storageClassName: gp3
+
+grafana:
+  enabled: true
+  # Default username "admin"; password comes from this value (or change in UI)
+  adminPassword: "admin"   # ⚠️ change in production!
+  defaultDashboardsTimezone: utc
+
+  # We'll expose Grafana via a separate Ingress later. For now, port-forward:
+  #   kubectl -n monitoring port-forward svc/kps-grafana 3000:80
+  service:
+    type: ClusterIP
+
+  persistence:
+    enabled:          true
+    size:             5Gi
+    storageClassName: gp3
+
+  # Pre-installed dashboards (the chart ships with a bunch — keep them).
+  defaultDashboardsEnabled: true
+
+  # Add a "Churn API" dashboard via configmap — see grafana-dashboard.yaml
+  dashboardProviders:
+    dashboardproviders.yaml:
+      apiVersion: 1
+      providers:
+        - name: 'churn'
+          orgId: 1
+          folder: 'Churn MLOps'
+          type: file
+          disableDeletion: false
+          editable: true
+          options:
+            path: /var/lib/grafana/dashboards/churn
+
+  dashboards:
+    churn:
+      churn-api:
+        json: |
+          {
+            "title": "Churn API — placeholder",
+            "panels": [],
+            "schemaVersion": 30,
+            "version": 1,
+            "refresh": "30s"
+          }
+
+# Alertmanager — keep it on but no integrations yet. Add Slack/PagerDuty
+# receivers under `alertmanager.config.receivers` when you're ready.
+alertmanager:
+  enabled: true
+  alertmanagerSpec:
+    resources:
+      requests:
+        cpu:    "50m"
+        memory: "64Mi"
+
+# Node exporter (host-level metrics) and kube-state-metrics (k8s object
+# state) — both default-on in the chart. Leave them be.

@@ -1,0 +1,32 @@
+# Separate ArgoCD Application for the Ingress + Namespace so churn-backend
+# and churn-frontend don't fight over who owns the namespace.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: churn-ingress
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+
+  source:
+    repoURL:        https://github.com/<your-user>/mlops-e2e.git
+    targetRevision: main
+    # Sync the namespace + ingress files only — directory `path: k8s/` would
+    # pull EVERYTHING, including the argocd-apps themselves (recursive loop).
+    path:           k8s
+    directory:
+      recurse: false
+      include: "{namespace.yaml,ingress.yaml}"
+
+  destination:
+    server:    https://kubernetes.default.svc
+    namespace: churn
+
+  syncPolicy:
+    automated:
+      prune:    true
+      selfHeal: true
+    syncOptions:
+      - ServerSideApply=true

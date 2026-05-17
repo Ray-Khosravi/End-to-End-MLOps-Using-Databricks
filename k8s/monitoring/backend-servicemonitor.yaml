@@ -1,0 +1,27 @@
+# ─────────────────────────────────────────────────────────────────────────
+# ServiceMonitor — tells Prometheus to scrape /metrics on the backend pods.
+# Requires that the prometheus-operator (installed by kube-prometheus-stack)
+# is running.
+# ─────────────────────────────────────────────────────────────────────────
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: churn-backend
+  namespace: monitoring
+  labels:
+    # The label key/value depends on your Prometheus selector. We set
+    # serviceMonitorSelectorNilUsesHelmValues=false in the helm values so
+    # ALL ServiceMonitors are picked up regardless of label.
+    release: kps
+spec:
+  namespaceSelector:
+    matchNames: ["churn"]
+  selector:
+    matchLabels:
+      app: backend           # matches the backend Service's labels
+  endpoints:
+    - port: http             # named port on the backend Service
+      path: /metrics
+      interval: 15s
+      scrapeTimeout: 10s
+      honorLabels: true

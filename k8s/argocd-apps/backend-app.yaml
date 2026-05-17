@@ -1,0 +1,42 @@
+# ─────────────────────────────────────────────────────────────────────────
+# ArgoCD Application — points at the k8s/backend/ directory in this repo.
+# ArgoCD watches that path and reconciles the cluster on every git commit.
+#
+# Apply once with:
+#   kubectl apply -f k8s/argocd-apps/backend-app.yaml
+# After that, every push to main triggers an auto-sync.
+# ─────────────────────────────────────────────────────────────────────────
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: churn-backend
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+
+  source:
+    # ⚠️  Change this to YOUR fork's HTTPS URL
+    repoURL:        https://github.com/<your-user>/mlops-e2e.git
+    targetRevision: main
+    path:           k8s/backend
+
+  destination:
+    server:    https://kubernetes.default.svc
+    namespace: churn
+
+  syncPolicy:
+    automated:
+      prune:    true       # delete resources removed from git
+      selfHeal: true       # revert manual cluster edits
+    syncOptions:
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+      - ServerSideApply=true
+    retry:
+      limit: 5
+      backoff:
+        duration:    10s
+        factor:      2
+        maxDuration: 5m
