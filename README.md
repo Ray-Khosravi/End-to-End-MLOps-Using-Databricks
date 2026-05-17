@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🚀 End-to-End MLOps — Customer Churn Prediction
+# 🚀 End-to-End MLOps Using Databricks — Customer Churn Prediction
 
 **A complete, production-grade MLOps pipeline: raw CSV → trained model → live API → Kubernetes**
 
